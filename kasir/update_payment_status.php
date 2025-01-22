@@ -1,23 +1,40 @@
 <?php
+session_start();
 include '../db.php';
 
-if (isset($_POST['orderId'], $_POST['paymentStatus'], $_POST['paymentAmount'], $_POST['changeAmount'])) {
-    $orderId = $_POST['orderId'];
-    $paymentStatus = $_POST['paymentStatus'];
-    $paymentAmount = $_POST['paymentAmount'];
-    $changeAmount = $_POST['changeAmount'];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (!isset($_POST['orderId']) || !isset($_POST['uangDibayar'])) {
+        die("Data tidak lengkap.");
+    }
 
-    // Update status pembayaran dan data pembayaran
-    $updateQuery = "UPDATE orders SET status = ?, payment = ?, change = ? WHERE order_id = ?";
-    $stmt = $conn->prepare($updateQuery);
-    $stmt->bind_param("sdii", $paymentStatus, $paymentAmount, $changeAmount, $orderId);
+    $orderId = intval($_POST['orderId']);
+    $uangDibayar = intval($_POST['uangDibayar']);
+
+    var_dump($uangDibayar);
+
+    // Ambil total harga dari database
+    $stmt = $conn->prepare("SELECT total_price FROM orders WHERE order_id = ?");
+    $stmt->bind_param("i", $orderId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $order = $result->fetch_assoc();
+
+    if (!$order) {
+        die("Pesanan tidak ditemukan.");
+    }
+
+    $totalHarga = $order['total_price'];
+
+    if ($uangDibayar < $totalHarga) {
+        die("Uang yang dibayarkan kurang!");
+    }
+
+    // Update status pesanan menjadi 'paid'
+    $stmt = $conn->prepare("UPDATE orders SET payment = ?,  status = 'paid' WHERE order_id = ?");
+    $stmt->bind_param("ii", $uangDibayar,$orderId);
     $stmt->execute();
 
-    // Cek apakah query berhasil
-    if ($stmt->affected_rows > 0) {
-        echo "Pembayaran berhasil diperbarui.";
-    } else {
-        echo "Gagal memperbarui pembayaran.";
-    }
+    header("Location: kasir_order.php?id=$orderId&status=success");
+    exit();
 }
 ?>

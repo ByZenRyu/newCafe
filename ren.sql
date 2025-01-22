@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jan 21, 2025 at 10:39 PM
+-- Generation Time: Jan 22, 2025 at 04:03 PM
 -- Server version: 8.0.40-0ubuntu0.24.04.1
 -- PHP Version: 8.3.6
 
@@ -20,6 +20,20 @@ SET time_zone = "+00:00";
 --
 -- Database: `ren`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `contacts`
+--
+
+CREATE TABLE `contacts` (
+  `id` int NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -45,7 +59,8 @@ CREATE TABLE `orders` (
 --
 
 INSERT INTO `orders` (`order_id`, `name`, `table_number`, `total_price`, `created_at`, `status`, `order_status`, `payment`, `product_id`, `quantity`) VALUES
-(9, 'dendi', 2, 24000.00, '2025-01-22 04:32:58', 'pending', 'Sedang antri', 0.00, 8, 1);
+(15, 'debay', 9, 16000.00, '2025-01-22 20:54:24', 'paid', 'Sedang antri', 20000.00, NULL, 1),
+(16, 'ganjar', 7, 48000.00, '2025-01-22 22:10:14', 'paid', 'Sedang antri', 50000.00, NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -73,6 +88,16 @@ CREATE TABLE `order_items` (
   `quantity` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `order_items`
+--
+
+INSERT INTO `order_items` (`order_item_id`, `order_id`, `product_id`, `quantity`) VALUES
+(5, 15, 8, 1),
+(6, 15, 9, 1),
+(7, 16, 8, 3),
+(8, 16, 9, 3);
+
 -- --------------------------------------------------------
 
 --
@@ -93,7 +118,8 @@ CREATE TABLE `product` (
 --
 
 INSERT INTO `product` (`product_id`, `name`, `price`, `description`, `image`, `is_active`) VALUES
-(8, 'nasgor', 12000.00, 'nasi goreng enak dan sedap', '../img/nasgor.png', 1);
+(8, 'nasgor', 12000.00, 'nasi goreng enak dan sedap', '../img/nasgor.png', 1),
+(9, 'gimbap', 4000.00, 'gimbap enak dan mantap', '../img/gimbap.png', 1);
 
 -- --------------------------------------------------------
 
@@ -121,6 +147,12 @@ INSERT INTO `users` (`id`, `username`, `email`, `password`) VALUES
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `contacts`
+--
+ALTER TABLE `contacts`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `orders`
@@ -162,10 +194,16 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `contacts`
+--
+ALTER TABLE `contacts`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `order_details`
@@ -177,13 +215,13 @@ ALTER TABLE `order_details`
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `order_item_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `order_item_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `product_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `product_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `users`

@@ -39,19 +39,37 @@ $products = $query->get_result();
         }
     </style>
     <script>
-        function calculateTotal() {
-            let total = 0;
-            let checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
-            
-            checkboxes.forEach(function (checkbox) {
-                let price = parseFloat(checkbox.getAttribute('data-price'));
-                let quantity = parseInt(checkbox.parentElement.querySelector('input[type="number"]').value);
-                total += price * quantity;
-            });
+       function calculateTotal() {
+    let total = 0;
 
-            let formattedTotal = total.toLocaleString('id-ID');
-            document.getElementById("total").innerText = "Total Harga: Rp " + formattedTotal;
-        }
+    // Ambil semua produk yang dipilih (checkbox dicentang)
+    let selectedProducts = document.querySelectorAll('input[name="products[]"]:checked');
+    
+    selectedProducts.forEach(function(product) {
+        // Ambil harga produk dari data-price
+        let price = parseFloat(product.getAttribute('data-price'));
+
+        // Ambil kuantitas untuk produk tersebut
+        let productId = product.value;
+        let quantity = parseInt(document.querySelector('input[name="quantities[' + productId + ']"]').value);
+
+        // Hitung subtotal dan tambahkan ke total
+        total += price * quantity;
+    });
+
+    // Tampilkan total harga dalam format yang lebih mudah dibaca
+    document.getElementById('total').textContent = "Total Harga: Rp " + total.toLocaleString();
+}
+
+        function filterUnchecked() {
+        let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(function (checkbox) {
+            if (!checkbox.checked) {
+                checkbox.parentElement.querySelector('input[type="hidden"]').remove();
+                checkbox.parentElement.querySelector('input[type="number"]').remove();
+            }
+        });
+    }
     </script>
 </head>
 <body>
@@ -92,11 +110,14 @@ $products = $query->get_result();
                         <h5 class="card-title"><?= $product['name']; ?></h5>
                         <p class="card-text">Rp <?= number_format($product['price'], 0, ',', '.'); ?></p>
 
+                        <!-- Checkbox untuk memilih produk -->
                         <input type="checkbox" name="products[]" value="<?= $product['product_id']; ?>"
                             data-price="<?= $product['price']; ?>" onchange="calculateTotal()">
                         Pilih Produk
-                        <input type="hidden" name="product_ids[]" value="<?= $product['product_id']; ?>">
-                        <input type="number" name="quantities[<?= $product['product_id']; ?>]" value="1" min="1" class="form-control mt-2" onchange="calculateTotal()">
+
+                        <!-- Input kuantitas produk -->
+                        <input type="number" name="quantities[<?= $product['product_id']; ?>]" 
+                            value="1" min="1" class="form-control mt-2" onchange="calculateTotal()">
                     </div>
                 </div>
             </div>
@@ -107,6 +128,7 @@ $products = $query->get_result();
 
     <button type="submit" class="btn btn-primary">Lanjut ke Checkout</button>
 </form>
+
 
     </div>
 

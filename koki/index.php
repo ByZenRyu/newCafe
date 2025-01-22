@@ -5,16 +5,13 @@ if (!isset($_SESSION['username']) || $_SESSION['username'] != 'koki') {
     exit();
 }
 
-require_once(__DIR__ . "/../db.php"); // Menghubungkan dengan database
+require_once(__DIR__ . "/../db.php");
 
-// Mengaktifkan error reporting penuh
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// Menangani error koneksi
+// Menangani error koneksi database
 if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
-}
+} 
 
 // Query untuk mengambil data pesanan
 $query = "
@@ -22,22 +19,26 @@ $query = "
         orders.order_id, 
         orders.name AS customer_name, 
         orders.table_number, 
-        orders.quantity, 
-        orders.total_price, 
+        GROUP_CONCAT(order_items.quantity ORDER BY product.name) AS quantities,
+        GROUP_CONCAT(product.name ORDER BY product.name) AS product_names,
+        SUM(order_items.quantity * product.price) AS total_price,
         orders.created_at, 
-        orders.order_status AS status, 
-        orders.payment, 
-        product.name AS product_name
+        orders.order_status
     FROM orders 
-    JOIN product ON orders.product_id = product.product_id
+    JOIN order_items ON orders.order_id = order_items.order_id
+    JOIN product ON order_items.product_id = product.product_id
+    WHERE orders.status = 'pending'
+    GROUP BY orders.order_id
     ORDER BY orders.created_at DESC
 ";
 
-// Menjalankan query dan menangani error jika query gagal
+
+
+
 $result = $conn->query($query);
 if (!$result) {
-    die("Query gagal: " . $conn->error); // Jika query gagal
-} 
+    die("Query gagal: " . $conn->error);
+}
 ?>
 
 <!DOCTYPE html>
@@ -63,60 +64,58 @@ if (!$result) {
             <div class="alert alert-success">Status pesanan berhasil diperbarui!</div>
         <?php endif; ?>
 
-        <table id="pesananTable" class="table table-striped table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID Pesanan</th>
-                    <th>Nama Pelanggan</th>
-                    <th>Nomor Meja</th>
-                    <th>Nama Produk</th>
-                    <th>Jumlah</th>
-                    <th>Total Harga</th>
-                    <th>Status</th>
-                    <th>Pembayaran</th>
-                    <th>Waktu Pemesanan</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($row = $result->fetch_assoc()): ?>
+        <?php if ($result->num_rows === 0): ?>
+            <p class="text-center">Tidak ada pesanan saat ini.</p>
+        <?php else: ?>
+            <table id="pesananTable" class="table table-striped table-bordered">
+                <thead class="table-dark">
                     <tr>
-                        <td><?= htmlspecialchars($row['order_id']); ?></td>
-                        <td><?= htmlspecialchars($row['customer_name']); ?></td>
-                        <td><?= htmlspecialchars($row['table_number']); ?></td>
-                        <td><?= htmlspecialchars($row['product_name']); ?></td>
-                        <td><?= htmlspecialchars($row['quantity']); ?></td>
-                        <td>Rp<?= number_format($row['total_price'], 0, ',', '.'); ?></td>
-                        <td>
-                            <?php if ($row['status'] == 'Sedang antri'): ?>
-                                <span class="badge bg-warning">Sedang antri</span>
-                            <?php elseif ($row['status'] == 'Sedang Dimasak'): ?>
-                                <span class="badge bg-primary">Sedang Dimasak</span>
-                            <?php elseif ($row['status'] == 'Selesai'): ?>
-                                <span class="badge bg-success">Selesai</span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?= htmlspecialchars($row['payment']); ?></td>
-                        <td><?= htmlspecialchars($row['created_at']); ?></td>
-                        <td>
-                            <div class="btn-group">
-                                <?php if ($row['status'] == 'Sedang antri'): ?>
-                                    <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang Dimasak" class="btn btn-primary btn-sm">Sedang Dimasak</a>
-                                    <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Selesai" class="btn btn-success btn-sm">Selesai</a>
-                                <?php elseif ($row['status'] == 'Sedang Dimasak'): ?>
-                                    <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Selesai" class="btn btn-success btn-sm">Selesai</a>
-                                    <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang antri" class="btn btn-warning btn-sm">Tandai Sedang Antri</a>
-                                <?php elseif ($row['status'] == 'Selesai'): ?>
-                                    <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang antri" class="btn btn-warning btn-sm">Tandai Sedang Antri</a>
-                                <?php endif; ?>
-                            </div>
-                        </td>
+                        <th>ID Pesanan</th>
+                        <th>Nama Pelanggan</th>
+                        <th>Nomor Meja</th>
+                        <th>Nama Produk</th>
+                        <th>Jumlah</th>
+                        <th>Total Harga</th>
+                        <th>Status</th>
+                        <th>Waktu Pemesanan</th>
+                        <th>Aksi</th>
                     </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['order_id']); ?></td>
+                            <td><?= htmlspecialchars($row['customer_name']); ?></td>
+                            <td><?= htmlspecialchars($row['table_number']); ?></td>
+                            <td><?= htmlspecialchars($row['product_names']); ?></td>
+                            <td><?= htmlspecialchars($row['quantities']); ?></td>
+                            <td>Rp<?= number_format($row['total_price'], 0, ',', '.'); ?></td>
+                            <td>
+                                <span class="badge bg-<?= $row['order_status'] == 'Sedang antri' ? 'warning' : ($row['order_status'] == 'Sedang Dimasak' ? 'primary' : 'success') ?>">
+                                    <?= htmlspecialchars($row['order_status']); ?>
+                                </span>
+                            </td>
+                            <td><?= htmlspecialchars($row['created_at']); ?></td>
+                            <td>
+                                <div class="btn-group">
+                                    <?php if ($row['order_status'] == 'Sedang antri'): ?>
+                                        <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang Dimasak" class="btn btn-primary btn-sm">Sedang Dimasak</a>
+                                        <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Selesai" class="btn btn-success btn-sm">Selesai</a>
+                                    <?php elseif ($row['order_status'] == 'Sedang Dimasak'): ?>
+                                        <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Selesai" class="btn btn-success btn-sm">Selesai</a>
+                                        <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang antri" class="btn btn-warning btn-sm">Tandai Sedang Antri</a>
+                                    <?php elseif ($row['order_status'] == 'Selesai'): ?>
+                                        <a href="update_order_status.php?id=<?= $row['order_id']; ?>&status=Sedang antri" class="btn btn-warning btn-sm">Tandai Sedang Antri</a>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
 
+            </table>
+        <?php endif; ?>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
